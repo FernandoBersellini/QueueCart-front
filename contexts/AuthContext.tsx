@@ -1,0 +1,97 @@
+"use client";
+
+import { createContext, useContext, useEffect, useState } from "react";
+import { AuthResponseDTO, SignInDTO, SignUpDTO } from "@/types/auth";
+import { useSignIn } from "@/hooks/auth/useSignIn";
+import { useSignUp } from "@/hooks/auth/useSignUp";
+import { useLogout } from "@/hooks/auth/useLogout";
+
+const STORAGE_KEY = "auth";
+
+interface AuthUser {
+  userId: number;
+  email: string;
+  name: string;
+  role: AuthResponseDTO["role"];
+}
+
+interface AuthState {
+  user: AuthUser | null;
+  token: string | null;
+  isReady: boolean;
+  signIn: (credentials: SignInDTO) => Promise<void>;
+  signUp: (newUser: SignUpDTO) => Promise<void>;
+  logout: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthState | null>(null);
+
+function persist(auth: AuthResponseDTO) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
+}
+
+function clearPersisted() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
+
+  const signInMutation = useSignIn();
+  const signUpMutation = useSignUp();
+  const logoutMutation = useLogout();
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed: AuthResponseDTO = JSON.parse(stored);
+      setUser({ userId: parsed.userId, email: parsed.email, name: parsed.name, role: parsed.role });
+      setToken(parsed.token);
+    }
+    setIsReady(true);
+  }, []);
+
+  function applyAuthResponse(auth: AuthResponseDTO) {
+    persist(auth);
+    setUser({ userId: auth.userId, email: auth.email, name: auth.name, role: auth.role });
+    setToken(auth.token);
+  }
+
+  async function signIn(credentials: SignInDTO) {
+    const auth = await signInMutation.mutateAsync(credentials);
+    if (auth) applyAuthResponse(auth);
+  }
+
+  async function signUp(newUser: SignUpDTO) {
+    const auth = await signUpMutation.mutateAsync(newUser);
+    if (auth) applyAuthResponse(auth);
+  }
+
+  async function logout() {
+    try {
+      if (token) {
+        await logoutMutation.mutateAsync(token);
+      }
+    } finally {
+      clearPersisted();
+      setUser(null);
+      setToken(null);
+    }
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, token, isReady, signIn, signUp, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}
