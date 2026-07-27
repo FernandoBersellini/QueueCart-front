@@ -1,26 +1,66 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --text: #02211d;
+  --background: #effefd;
+  --primary: #23f4de;
+  --secondary: #706ff7;
+  --accent: #7d42f5;
+  --on-primary: #02211d;
+  --on-accent: #ffffff;
+  --card-bg: #ffffff;
+  --border: rgba(2, 33, 29, 0.12);
+  --muted: rgba(2, 33, 29, 0.62);
+}
+
+:root[data-theme="dark"] {
+  --text: #ddfdf9;
+  --background: #010e0d;
+  --primary: #0bdac5;
+  --secondary: #080891;
+  --accent: #460abd;
+  --on-primary: #010e0d;
+  --on-accent: #f2f0ff;
+  --card-bg: #06201d;
+  --border: rgba(221, 253, 249, 0.14);
+  --muted: rgba(221, 253, 249, 0.6);
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-foreground: var(--text);
+  --font-heading: var(--font-space-grotesk);
+  --font-sans: var(--font-inter);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+  font-family: var(--font-inter), sans-serif;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+h1, h2, h3, .logo {
+  font-family: var(--font-space-grotesk), sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@keyframes driftStripes {
+  from { transform: translateX(0); }
+  to { transform: translateX(120px); }
+}
+
+@keyframes dispatch {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
