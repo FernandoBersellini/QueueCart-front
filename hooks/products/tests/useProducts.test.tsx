@@ -10,7 +10,7 @@ describe("useProducts", () => {
         server.use(
             http.get("http://localhost:8080/product/all-products", () =>
                 HttpResponse.json({
-                    content: [{ id: 1, name: "Widget", description: "", sku: "W-1", price: 9.99, active: true, categoryId: 1 }],
+                    content: [{ id: 1, name: "Widget", description: "", sku: "W-1", price: 9.99, active: true, categoryId: 1, imageUrls: [] }],
                     page: 0,
                     size: 20,
                     totalElements: 1,

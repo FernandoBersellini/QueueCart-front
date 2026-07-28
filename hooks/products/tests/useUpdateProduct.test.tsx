@@ -9,7 +9,7 @@ describe("useUpdateProduct", () => {
     it("updates a product and invalidates list + item", async () => {
         server.use(
             http.patch("http://localhost:8080/product/update-product/:id", () =>
-                HttpResponse.json({ id: 1, name: "Widget v2", description: "", sku: "W-1", price: 12.5, active: true, categoryId: 1 })
+                HttpResponse.json({ id: 1, name: "Widget v2", description: "", sku: "W-1", price: 12.5, active: true, categoryId: 1, imageUrls: [] })
             )
         )
 

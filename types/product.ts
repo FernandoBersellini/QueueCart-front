@@ -6,6 +6,7 @@ export interface Product {
     price: number;
     active: boolean;
     categoryId: number;
+    imageUrls: string[];
 }
 
 export interface CreateProductDTO {

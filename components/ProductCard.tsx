@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Product } from "@/types/product";
 
@@ -6,6 +7,8 @@ function formatPrice(price: number) {
 }
 
 export function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
+  const coverImage = product.imageUrls[0];
+
   return (
     <div
       className="rounded-[14px] border overflow-hidden opacity-0"
@@ -18,13 +21,25 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
       }}
     >
       <Link href={`/products/${product.id}`}>
-        <div
-          className="aspect-square"
-          style={{
-            background: "linear-gradient(160deg, var(--primary) 0%, var(--secondary) 100%)",
-            opacity: 0.85,
-          }}
-        />
+        {coverImage ? (
+          <div className="relative aspect-square">
+            <Image
+              src={coverImage}
+              alt={product.name}
+              fill
+              sizes="(max-width: 768px) 50vw, 25vw"
+              className="object-cover"
+            />
+          </div>
+        ) : (
+          <div
+            className="aspect-square"
+            style={{
+              background: "linear-gradient(160deg, var(--primary) 0%, var(--secondary) 100%)",
+              opacity: 0.85,
+            }}
+          />
+        )}
       </Link>
       <div className="p-3.5">
         <Link href={`/products/${product.id}`}>

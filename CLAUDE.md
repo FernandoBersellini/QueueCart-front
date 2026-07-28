@@ -29,10 +29,10 @@ backend.
   `server.port`/`context-path` customizada em `application.properties`).
 - Formato: JSON em todo lugar, sem envelope — os controllers retornam o DTO diretamente (não há
   `{ data: ... }` nem paginação implementada ainda).
-- **CORS ainda não está configurado no backend.** Antes de o frontend rodar em uma origem
-  diferente (ex.: `localhost:3000`), é preciso adicionar um `CorsConfigurationSource` no
-  `SecurityConfig`. Se você é a sessão de frontend e esbarrar em erro de CORS, essa é a causa —
-  sinalize para o backend, não tente contornar por fora.
+- **CORS configurado apenas para `http://localhost:3001`** (`SecurityConfig.corsConfigurationSource()`).
+  Métodos liberados: `GET, POST, PUT, PATCH, DELETE, OPTIONS`, qualquer header, e
+  `allowCredentials(true)`. Se o frontend rodar em outra porta/origem, o backend precisa adicionar
+  essa origem na lista — não é um wildcard `*`.
 
 ## 3. Autenticação (JWT)
 
@@ -78,6 +78,8 @@ header, valida o token e popula o contexto de segurança com `email` (subject) e
 | `GET /order/all-orders` | `ADMIN` |
 | `PATCH /order/order/*/confirm`, `/ship`, `/deliver` | `ADMIN` |
 | `DELETE /order/delete-order/**` | `ADMIN` |
+| `POST /product/product/*/images` | `ADMIN` |
+| `DELETE /product/product/*/images/**` | `ADMIN` |
 | qualquer outra rota (cart, `POST /order/create-order`, `GET /order/order/{id}`, `GET /order/order/user/{userId}`, `PATCH /order/order/*/cancel`, `POST /user/auth/logout`, etc.) | autenticado (qualquer usuário logado, sem exigir role específica) |
 
 Ou seja: rotas de leitura de catálogo continuam públicas, rotas administrativas de escrita
@@ -100,7 +102,9 @@ requisições com aquele token voltam a ser tratadas como anônimas (o filtro ig
 revogados, não lança erro).
 
 **Erros de auth**: sign-in com credenciais inválidas ou usuário inativo → `401`. Sign-up com
-email já existente → `409`. Ver seção de formato de erro abaixo.
+email já existente → `409`. `SignUpDTO` agora valida `email` (formato), `password` (mínimo 8
+caracteres) e `name` não-vazio via Bean Validation — erro de formato devolve `400` antes de
+chegar na regra de negócio. Ver seção de formato de erro abaixo.
 
 ## 4. Endpoints por domínio
 
@@ -115,17 +119,29 @@ email já existente → `409`. Ver seção de formato de erro abaixo.
 | PATCH | `/product/update-product/{id}` | `UpdateProductDTO` | `ProductDTO` |
 | PATCH | `/product/toggle-product/{id}` | — | `ProductDTO` (ativa/desativa) |
 | DELETE | `/product/delete-product/{id}` | — | `204` |
+| POST | `/product/product/{id}/images` | `{ url }` | `201` + `ProductDTO` (`ADMIN`) |
+| DELETE | `/product/product/{id}/images/{imageId}` | — | `200` + `ProductDTO` (`ADMIN`) |
 
 Os dois GETs de lista aceitam `?page=0&size=20` (0-based, `size` default 20). Ordenação
 padrão: `id` ascendente.
 
 ```ts
-ProductDTO       { name, description, sku, price, active, categoryId }
+ProductDTO       { id, name, description, sku, price, active, categoryId, imageUrls: string[] }
 CreateProductDTO { name, description, sku, price, categoryId }
 UpdateProductDTO { name, description, sku, price, categoryId }
 ```
 `price` é `BigDecimal` no backend → chega como número JSON; trate como string/decimal no
 frontend se precisar de precisão monetária exata (evite `parseFloat` ingênuo em somas).
+
+**Galeria de imagens**: um produto tem várias imagens (`imageUrls`), mas **sem ordem
+explícita** — não há campo de posição/capa no backend, então não trate `imageUrls[0]` como
+"imagem principal" garantida (é só a ordem de inserção/leitura do banco). `CreateProductDTO` e
+`UpdateProductDTO` **não** incluem `imageUrls` — imagens só são adicionadas/removidas pelos
+endpoints dedicados acima, uma de cada vez, e cada chamada devolve o `ProductDTO` inteiro já
+atualizado (não um objeto de imagem isolado). `imageId` no `DELETE` é o `id` do `ProductImage`
+no backend, que **não** é exposto em `imageUrls` (é só a lista de strings) — hoje o frontend não
+tem como descobrir esse id pela API; se precisar apagar uma imagem específica, sinalize para o
+backend expor o id junto da URL.
 
 ### Catálogo — Categorias (`/category/`)
 
@@ -143,12 +159,15 @@ Sem paginação aqui — os dois GETs de lista trazem tudo (diferente de produto
 paginado).
 
 ```ts
-CategoryDTO       { name, slug, description, active, parentId }
+CategoryDTO       { id, name, slug, description, active, parentId }
 CreateCategoryDTO { name, slug, description, parentId }
 UpdateCategoryDTO { name, slug, description, parentId }
 ```
 Categorias suportam hierarquia (`parentId` opcional/nullable) — útil para árvore de menu no
-frontend.
+frontend. `CreateCategoryDTO`/`UpdateCategoryDTO` agora exigem `name`/`slug`/`description`
+não-vazios e `parentId` **não-nulo** via Bean Validation — se a categoria for raiz (sem pai),
+confirme com o backend o que enviar em `parentId`, porque hoje `@NotNull` bloqueia `null` mesmo
+sendo semanticamente "sem pai".
 
 ### Carrinho (`/cart/`)
 
@@ -170,6 +189,10 @@ CartItemDTO { productId, quantity }
 Repare que `CartItemDTO` só tem `productId` e `quantity` — **não** traz nome/preço do produto.
 O frontend precisa cruzar com os dados de `/product/product/{id}` (ou manter um cache local dos
 produtos) para montar a UI do carrinho com preço/nome.
+
+`quantity` agora precisa ser positivo (`@Positive`) em `add-item` e `update-item` — enviar `0`
+ou negativo devolve `400` (ver formato de erro). Não existe endpoint separado pra "zerar
+quantidade removendo o item"; pra isso use `DELETE /cart/remove-item/{userId}/{productId}`.
 
 ### Pedidos (`/order/`)
 
@@ -201,6 +224,11 @@ Ponto importante: **quem monta `CreateOrderDTO` é o cliente** — o frontend pr
 `productName` e `unitPrice` junto com `productId`/`quantity` ao criar o pedido (o backend não
 busca esses dados do catálogo automaticamente nesse endpoint). Isso normalmente vem do que já
 está no carrinho na tela de checkout.
+
+`CreateOrderDTO` agora valida `userId` não-nulo e `items` não-vazio; cada `OrderItemRequestDTO`
+exige `productId`, `productName` não-vazio, `unitPrice > 0` e `quantity` positivo — mandar um
+pedido sem itens ou com preço/quantidade inválidos devolve `400` antes de qualquer regra de
+negócio rodar.
 
 As transições de status (`confirm`, `ship`, `deliver`, `cancel`) hoje são chamadas diretas — não
 há validação de máquina de estado exposta na doc, então trate erros de transição inválida como
@@ -247,6 +275,9 @@ Todo erro (validação, regra de negócio, exceção genérica) devolve o mesmo 
 - Erros de validação de campo (`@Valid`) concatenam `campo: mensagem` separados por vírgula em
   `message` — não vem como array estruturado por campo, então não dá pra mapear erro→campo de
   forma limpa hoje; é só uma string para exibir ao usuário ou logar.
+- `@Valid` agora está em **todos** os `@RequestBody` da API (catalog, cart, order, user), não só
+  produto/categoria — qualquer DTO de entrada pode devolver `400` por violação de constraint
+  antes de tocar na regra de negócio (ver notas de validação em cada seção de endpoint acima).
 
 ## 7. O que NÃO existe ainda (não modelar o frontend em cima disso)
 
@@ -254,7 +285,8 @@ Todo erro (validação, regra de negócio, exceção genérica) devolve o mesmo 
   recurso"** — um `CUSTOMER` autenticado pode chamar `/cart/{userId}` ou `/order/order/user/{userId}`
   com o `userId` de outra pessoa e a API não bloqueia isso hoje. Não modele o frontend
   assumindo que a API impede um usuário de acessar dados de outro.
-- Sem CORS configurado.
+- CORS configurado só para `http://localhost:3001` (ver seção 2) — outra origem precisa ser
+  adicionada no backend antes de funcionar.
 - Sem refresh token — o JWT expira em 1h (`jwt.expiration-ms=3600000`) e não há endpoint de
   renovação; ao expirar, o usuário precisa fazer sign-in de novo.
 - Sem WebSocket/SSE para status de pedido em tempo real — para saber se um pedido mudou de

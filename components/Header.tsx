@@ -16,12 +16,12 @@ export function Header({ cartCount = 0 }: { cartCount?: number }) {
   return (
     <header className="sticky top-0 z-10 border-b" style={{ background: "var(--background)", borderColor: "var(--border)" }}>
       <div
-        className="flex items-center gap-8 px-6 py-[18px]"
+        className="flex items-center gap-8 px-6 py-4.5"
         style={{ maxWidth: 1120, margin: "0 auto" }}
       >
         <Link href="/" className="logo flex items-center gap-2.5 font-bold text-xl tracking-tight whitespace-nowrap">
           <span
-            className="flex items-center justify-center shrink-0 rounded-lg w-[30px] h-[30px] text-white font-bold text-[15px]"
+            className="flex items-center justify-center shrink-0 rounded-lg w-7.5 h-7.5 text-white font-bold text-[15px]"
             style={{ background: "linear-gradient(135deg, var(--secondary), var(--accent))" }}
           >
             Q
@@ -44,7 +44,7 @@ export function Header({ cartCount = 0 }: { cartCount?: number }) {
 
         <div className="flex items-center gap-3.5 ml-auto">
           <div
-            className="hidden md:flex items-center gap-2 rounded-full border px-3.5 py-2 w-[220px]"
+            className="hidden md:flex items-center gap-2 rounded-full border px-3.5 py-2 w-55"
             style={{ background: "var(--card-bg)", borderColor: "var(--border)" }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ opacity: 0.55, flexShrink: 0 }}>
@@ -62,7 +62,7 @@ export function Header({ cartCount = 0 }: { cartCount?: number }) {
           <button
             onClick={toggleTheme}
             aria-label="Alternar tema"
-            className="relative flex items-center justify-center shrink-0 rounded-full border w-[38px] h-[38px] cursor-pointer"
+            className="relative flex items-center justify-center shrink-0 rounded-full border w-9.5 h-9.5 cursor-pointer"
             style={{ background: "var(--card-bg)", borderColor: "var(--border)" }}
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -73,7 +73,7 @@ export function Header({ cartCount = 0 }: { cartCount?: number }) {
 
           <button
             aria-label="Carrinho"
-            className="relative flex items-center justify-center shrink-0 rounded-full border w-[38px] h-[38px] cursor-pointer"
+            className="relative flex items-center justify-center shrink-0 rounded-full border w-9.5 h-9.5 cursor-pointer"
             style={{ background: "var(--card-bg)", borderColor: "var(--border)" }}
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -83,7 +83,7 @@ export function Header({ cartCount = 0 }: { cartCount?: number }) {
             </svg>
             {cartCount > 0 && (
               <span
-                className="absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full text-[10px] font-semibold w-[17px] h-[17px]"
+                className="absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full text-[10px] font-semibold w-4.25 h-4.25"
                 style={{ background: "var(--accent)", color: "var(--on-accent)" }}
               >
                 {cartCount}

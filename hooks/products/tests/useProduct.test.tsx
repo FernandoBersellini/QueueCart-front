@@ -9,7 +9,7 @@ describe("useProduct", () => {
     it("returns a single product from the API", async () => {
         server.use(
             http.get("http://localhost:8080/product/product/:id", () =>
-                HttpResponse.json({ id: 1, name: "Widget", description: "", sku: "W-1", price: 9.99, active: true, categoryId: 1 })
+                HttpResponse.json({ id: 1, name: "Widget", description: "", sku: "W-1", price: 9.99, active: true, categoryId: 1, imageUrls: [] })
             )
         )
 

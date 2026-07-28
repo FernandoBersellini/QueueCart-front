@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Product } from "@/types/product";
 
 function formatPrice(price: number) {
@@ -9,6 +10,8 @@ function formatPrice(price: number) {
 
 export function ProductDetail({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const coverImage = product.imageUrls[selectedImage];
 
   function decrement() {
     setQuantity((current) => Math.max(1, current - 1));
@@ -20,14 +23,48 @@ export function ProductDetail({ product }: { product: Product }) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 px-6 pt-8 pb-16">
-      <div
-        className="aspect-square rounded-[18px]"
-        style={{ background: "linear-gradient(150deg, var(--primary) 0%, var(--accent) 100%)" }}
-      />
+      <div>
+        {coverImage ? (
+          <div className="relative aspect-square rounded-[18px] overflow-hidden">
+            <Image
+              src={coverImage}
+              alt={product.name}
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="object-cover"
+              priority
+            />
+          </div>
+        ) : (
+          <div
+            className="aspect-square rounded-[18px]"
+            style={{ background: "linear-gradient(150deg, var(--primary) 0%, var(--accent) 100%)" }}
+          />
+        )}
+
+        {product.imageUrls.length > 1 && (
+          <div className="flex gap-2.5 mt-3">
+            {product.imageUrls.map((url, index) => (
+              <button
+                key={url}
+                onClick={() => setSelectedImage(index)}
+                aria-label={`Ver imagem ${index + 1}`}
+                className="relative w-16 h-16 rounded-lg overflow-hidden border-none p-0 cursor-pointer"
+                style={{
+                  outline: index === selectedImage ? "2px solid var(--accent)" : "2px solid transparent",
+                  outlineOffset: "-2px",
+                }}
+              >
+                <Image src={url} alt="" fill sizes="64px" className="object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div>
         <h1 className="text-[26px] mb-2.5 tracking-tight">{product.name}</h1>
-        <div className="text-[22px] font-semibold mb-[18px]">{formatPrice(product.price)}</div>
+        <div className="text-[22px] font-semibold mb-4.5">{formatPrice(product.price)}</div>
         <p className="text-sm leading-[1.7] mb-6" style={{ color: "var(--muted)" }}>
           {product.description}
         </p>

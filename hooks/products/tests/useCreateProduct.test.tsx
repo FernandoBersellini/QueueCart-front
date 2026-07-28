@@ -9,7 +9,7 @@ describe("useCreateProduct", () => {
     it("creates a product and invalidates the products list", async () => {
         server.use(
             http.post("http://localhost:8080/product/create-product", () =>
-                HttpResponse.json({ id: 1, name: "Widget", description: "", sku: "W-1", price: 9.99, active: true, categoryId: 1 }, { status: 201 })
+                HttpResponse.json({ id: 1, name: "Widget", description: "", sku: "W-1", price: 9.99, active: true, categoryId: 1, imageUrls: [] }, { status: 201 })
             )
         )
 

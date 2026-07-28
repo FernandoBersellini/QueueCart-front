@@ -14,6 +14,7 @@ export const mockProducts: Product[] = [
     price: 189.9,
     active: true,
     categoryId: 1,
+    imageUrls: [],
   },
   {
     id: 2,
@@ -24,6 +25,7 @@ export const mockProducts: Product[] = [
     price: 249.0,
     active: true,
     categoryId: 2,
+    imageUrls: [],
   },
   {
     id: 3,
@@ -34,6 +36,7 @@ export const mockProducts: Product[] = [
     price: 312.5,
     active: true,
     categoryId: 3,
+    imageUrls: [],
   },
   {
     id: 4,
@@ -44,6 +47,7 @@ export const mockProducts: Product[] = [
     price: 279.9,
     active: true,
     categoryId: 4,
+    imageUrls: [],
   },
   {
     id: 5,
@@ -54,6 +58,7 @@ export const mockProducts: Product[] = [
     price: 98.0,
     active: true,
     categoryId: 3,
+    imageUrls: [],
   },
   {
     id: 6,
@@ -64,6 +69,7 @@ export const mockProducts: Product[] = [
     price: 349.0,
     active: true,
     categoryId: 1,
+    imageUrls: [],
   },
   {
     id: 7,
@@ -74,6 +80,7 @@ export const mockProducts: Product[] = [
     price: 89.9,
     active: true,
     categoryId: 2,
+    imageUrls: [],
   },
   {
     id: 8,
@@ -84,5 +91,6 @@ export const mockProducts: Product[] = [
     price: 429.0,
     active: true,
     categoryId: 4,
+    imageUrls: [],
   },
 ];

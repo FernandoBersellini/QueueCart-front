@@ -9,7 +9,7 @@ describe("useToggleProduct", () => {
     it("toggles a product and invalidates list + item", async () => {
         server.use(
             http.patch("http://localhost:8080/product/toggle-product/:id", () =>
-                HttpResponse.json({ id: 1, name: "Widget", description: "", sku: "W-1", price: 9.99, active: false, categoryId: 1 })
+                HttpResponse.json({ id: 1, name: "Widget", description: "", sku: "W-1", price: 9.99, active: false, categoryId: 1, imageUrls: [] })
             )
         )
 
