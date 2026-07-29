@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useTheme } from "@/hooks/useTheme";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NAV_LINKS = [
   { label: "Início", href: "/" },
@@ -12,6 +13,7 @@ const NAV_LINKS = [
 
 export function Header({ cartCount = 0 }: { cartCount?: number }) {
   const { toggleTheme } = useTheme();
+  const { user, isReady, logout } = useAuth();
 
   return (
     <header className="sticky top-0 z-10 border-b" style={{ background: "var(--background)", borderColor: "var(--border)" }}>
@@ -90,6 +92,33 @@ export function Header({ cartCount = 0 }: { cartCount?: number }) {
               </span>
             )}
           </button>
+
+          {isReady && (
+            user ? (
+              <div className="flex items-center gap-3.5 whitespace-nowrap">
+                {user.role === "ADMIN" && (
+                  <Link href="/admin" className="text-sm font-medium" style={{ color: "var(--primary)" }}>
+                    Admin
+                  </Link>
+                )}
+                <button
+                  onClick={() => logout()}
+                  className="text-sm font-medium cursor-pointer"
+                  style={{ color: "var(--muted)" }}
+                >
+                  Olá, {user.name.split(" ")[0]} · Sair
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="text-sm font-medium whitespace-nowrap"
+                style={{ color: "var(--muted)" }}
+              >
+                Entrar
+              </Link>
+            )
+          )}
         </div>
       </div>
     </header>
