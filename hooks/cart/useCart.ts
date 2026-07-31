@@ -8,6 +8,7 @@ export function useCart(userId: number) {
 
     return useQuery({
         queryKey: ["cart", userId],
-        queryFn: () => api<CartDTO>(`/cart/${userId}`, {}, token ?? undefined)
+        queryFn: () => api<CartDTO>(`/cart/${userId}`, {}, token ?? undefined),
+        enabled: userId > 0,
     })
 }

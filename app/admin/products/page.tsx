@@ -9,7 +9,7 @@ export default function AdminProductsPage() {
     <>
       <AdminPageHeader
         title="Produtos"
-        description="Gestão de produtos via UI ainda não implementada — use a API (Swagger/Postman) por enquanto."
+        description="Gerencie os produtos cadastrados" // Adicione uma descrição se desejar
       />
       <div className="grid grid-cols-3 gap-y-10 gap-x-5 px-6">
         <AnalyticCard title="Total de Produtos" value="10" icon={<ShoppingBag size={20} />} description="Produtos cadastrados" />

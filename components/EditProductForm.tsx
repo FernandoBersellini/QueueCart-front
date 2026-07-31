@@ -99,6 +99,7 @@ export function EditProductForm({ product, onClose }: { product: Product; onClos
                 <div>
                     <select
                         className="w-full rounded-lg border border-(--border) p-2.5 text-sm font-medium"
+                        style={{ background: "var(--card-bg)", color: "var(--text)" }}
                         {...register("categoryId")}
                     >
                         <option value="" disabled>Selecione a categoria</option>

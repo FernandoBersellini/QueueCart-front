@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCartContext } from "@/contexts/CartContext";
+import { CartSideBar } from "@/components/CartSideBar";
 
 const NAV_LINKS = [
   { label: "Início", href: "/" },
@@ -11,9 +14,12 @@ const NAV_LINKS = [
   { label: "Sobre", href: "/sobre" },
 ];
 
-export function Header({ cartCount = 0 }: { cartCount?: number }) {
+export function Header() {
   const { toggleTheme } = useTheme();
   const { user, isReady, logout } = useAuth();
+  const { cart } = useCartContext();
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const cartCount = cart?.items.reduce((total, item) => total + item.quantity, 0) ?? 0;
 
   return (
     <header className="sticky top-0 z-10 border-b" style={{ background: "var(--background)", borderColor: "var(--border)" }}>
@@ -74,6 +80,7 @@ export function Header({ cartCount = 0 }: { cartCount?: number }) {
           </button>
 
           <button
+            onClick={() => setIsCartOpen(true)}
             aria-label="Carrinho"
             className="relative flex items-center justify-center shrink-0 rounded-full border w-9.5 h-9.5 cursor-pointer"
             style={{ background: "var(--card-bg)", borderColor: "var(--border)" }}
@@ -121,6 +128,8 @@ export function Header({ cartCount = 0 }: { cartCount?: number }) {
           )}
         </div>
       </div>
+
+      <CartSideBar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </header>
   );
 }

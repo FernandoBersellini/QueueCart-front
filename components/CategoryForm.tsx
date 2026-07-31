@@ -94,6 +94,7 @@ export function CategoryForm() {
                             <select
                                 defaultValue=""
                                 className="w-full rounded-lg border border-(--border) p-2.5 text-sm font-medium"
+                                style={{ background: "var(--card-bg)", color: "var(--text)" }}
                                 {...register("parentId")}
                             >
                                 <option value="" disabled>Selecione a categoria pai</option>

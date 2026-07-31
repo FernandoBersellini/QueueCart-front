@@ -1,6 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { Product } from "@/types/product";
+import { useCartContext } from "@/contexts/CartContext";
 
 function formatPrice(price: number) {
   return price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -8,6 +11,7 @@ function formatPrice(price: number) {
 
 export function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
   const coverImage = product.imageUrls[0];
+  const { addToCart } = useCartContext();
 
   return (
     <div
@@ -47,6 +51,7 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
         </Link>
         <div className="text-[15px] font-semibold mb-2.5">{formatPrice(product.price)}</div>
         <button
+          onClick={() => addToCart(product.id, 1)}
           className="w-full rounded-lg border-none py-2.5 text-[13px] font-medium cursor-pointer"
           style={{ background: "var(--accent)", color: "var(--on-accent)" }}
         >

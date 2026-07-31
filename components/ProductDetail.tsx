@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useCartContext } from "@/contexts/CartContext";
 import { Product } from "@/types/product";
 
 function formatPrice(price: number) {
@@ -12,6 +13,7 @@ export function ProductDetail({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const coverImage = product.imageUrls[selectedImage];
+  const { addToCart } = useCartContext();
 
   function decrement() {
     setQuantity((current) => Math.max(1, current - 1));
@@ -94,6 +96,7 @@ export function ProductDetail({ product }: { product: Product }) {
         <button
           className="rounded-[10px] border-none px-7 py-3.5 font-semibold text-sm cursor-pointer"
           style={{ background: "var(--accent)", color: "var(--on-accent)" }}
+          onClick={() => addToCart(product.id, quantity)}
         >
           Adicionar ao carrinho
         </button>
