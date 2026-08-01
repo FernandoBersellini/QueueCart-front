@@ -5,6 +5,7 @@ import { AuthResponseDTO, SignInDTO, SignUpDTO } from "@/types/auth";
 import { useSignIn } from "@/hooks/auth/useSignIn";
 import { useSignUp } from "@/hooks/auth/useSignUp";
 import { useLogout } from "@/hooks/auth/useLogout";
+import { setAuthTokens, subscribeAuthTokens } from "@/lib/authStore";
 
 const STORAGE_KEY = "auth";
 
@@ -30,6 +31,11 @@ function persist(auth: AuthResponseDTO) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
 }
 
+function readStored(): AuthResponseDTO | null {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored ? JSON.parse(stored) : null;
+}
+
 function clearPersisted() {
   localStorage.removeItem(STORAGE_KEY);
 }
@@ -44,19 +50,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logoutMutation = useLogout();
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = readStored();
     if (stored) {
-      const parsed: AuthResponseDTO = JSON.parse(stored);
-      setUser({ userId: parsed.userId, email: parsed.email, name: parsed.name, role: parsed.role });
-      setToken(parsed.token);
+      setUser({ userId: stored.userId, email: stored.email, name: stored.name, role: stored.role });
+      setToken(stored.token);
+      setAuthTokens({ token: stored.token, refreshToken: stored.refreshToken });
     }
     setIsReady(true);
+  }, []);
+
+  useEffect(() => {
+    return subscribeAuthTokens((tokens) => {
+      if (tokens) {
+        const stored = readStored();
+        if (stored) persist({ ...stored, token: tokens.token, refreshToken: tokens.refreshToken });
+        setToken(tokens.token);
+      } else {
+        clearPersisted();
+        setUser(null);
+        setToken(null);
+      }
+    });
   }, []);
 
   function applyAuthResponse(auth: AuthResponseDTO) {
     persist(auth);
     setUser({ userId: auth.userId, email: auth.email, name: auth.name, role: auth.role });
     setToken(auth.token);
+    setAuthTokens({ token: auth.token, refreshToken: auth.refreshToken });
   }
 
   async function signIn(credentials: SignInDTO) {
@@ -70,14 +91,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function logout() {
+    const refreshToken = readStored()?.refreshToken;
+
     try {
-      if (token) {
-        await logoutMutation.mutateAsync(token);
+      if (token && refreshToken) {
+        await logoutMutation.mutateAsync({ token, refreshToken });
       }
     } finally {
-      clearPersisted();
-      setUser(null);
-      setToken(null);
+      setAuthTokens(null);
       window.location.href = "/";
     }
   }

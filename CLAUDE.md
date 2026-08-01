@@ -42,11 +42,15 @@ Rotas em `/user/auth/*`:
 |---|---|---|---|
 | POST | `/user/auth/sign-up` | `{ email, password, name }` | `201` + `AuthResponseDTO` |
 | POST | `/user/auth/sign-in` | `{ email, password }` | `200` + `AuthResponseDTO` |
-| POST | `/user/auth/logout` | — (token vai no header) | `204` |
+| POST | `/user/auth/refresh` | `{ refreshToken }` | `200` + `AuthResponseDTO` (pública, não exige access token) |
+| POST | `/user/auth/logout` | `{ refreshToken }` (access token vai no header) | `204` |
 
 `AuthResponseDTO`:
 ```json
-{ "userId": 1, "email": "user@mail.com", "name": "User", "role": "CUSTOMER", "token": "<jwt>" }
+{
+  "userId": 1, "email": "user@mail.com", "name": "User", "role": "CUSTOMER",
+  "token": "<jwt access token>", "refreshToken": "<opaque refresh token>"
+}
 ```
 O campo `role` (`CUSTOMER` ou `ADMIN`) foi adicionado à resposta — o frontend precisa dele para
 decidir o que renderizar (ex.: esconder telas de admin) sem depender de decodificar o JWT.
@@ -54,7 +58,16 @@ decidir o que renderizar (ex.: esconder telas de admin) sem depender de decodifi
 ⚠️ **O campo `token` no corpo da resposta é temporário.** Há um comentário explícito no código
 (`AuthResponseDTO.java`) dizendo que ele será removido antes do deploy, e que o token vai passar
 a ser entregue via cookie. **Não construa a lógica de auth do frontend assumindo que
-`token` no body é definitivo** — trate como implementação provisória da Fase 1.
+`token`/`refreshToken` no body são definitivos** — trate como implementação provisória da Fase 1.
+
+**Refresh token — modelo híbrido**: o access token (`token`) é stateless (JWT curto, 1h) e o
+refresh token é stateful (opaco, validado contra o banco, vida longa — 7 dias). Chame
+`POST /user/auth/refresh` com `{ refreshToken }` quando o access token expirar; a resposta traz
+um par novo (`token` + `refreshToken`) — **o refresh token é de uso único** (rotação): a cada
+chamada, o antigo é invalidado e um novo é emitido. Guardar/reusar um `refreshToken` já
+consumido devolve `401`. Isso significa que o frontend precisa sempre substituir o
+`refreshToken` guardado pelo mais recente devolvido — nunca reutilizar um antigo, mesmo que
+ainda pareça "dentro da validade".
 
 **Como autenticar chamadas**: enviar o JWT no header `Authorization: Bearer <token>` em toda
 requisição que precisar de identidade do usuário. O filtro (`JwtAuthenticationFilter`) lê esse
@@ -89,17 +102,25 @@ frontend assumindo que um usuário `CUSTOMER` está impedido de acessar/alterar 
 de outro `userId` pela API — a checagem de "dono do recurso" ainda não está implementada no
 backend).
 
-`SecurityConfig` não registra um `AuthenticationEntryPoint`/`AccessDeniedHandler` customizado nem
-`httpBasic()`/`formLogin()` — nesse caso o comportamento padrão do Spring Security é responder
-`403` tanto para requisição sem token quanto para token válido com role insuficiente (não há
-`401` de "não autenticado" distinto de `403` de "sem permissão" hoje). `401` continua existindo
-só para credenciais inválidas no `sign-in`. Trate `403` no frontend como "sem acesso" — pode
-significar tanto "não logado" quanto "logado mas sem permissão"; se precisar diferenciar os dois
-casos na UI, isso ainda depende de o frontend saber se guardou um token localmente ou não.
+`SecurityConfig` registra um `JwtAuthenticationEntryPoint` customizado, então requisições sem
+autenticação válida agora devolvem `401` (não mais `403` vazio) com corpo no mesmo formato do
+`GlobalExceptionHandler` (ver seção 6). A mensagem em `message` distingue três casos:
+- `"Token expired"` — access token expirado. **Esse é o sinal pra disparar o refresh**
+  automaticamente (`POST /user/auth/refresh`) e repetir a requisição original.
+- `"Invalid token"` — token malformado/assinatura inválida/revogado. Não adianta tentar refresh;
+  trate como sessão inválida e mande o usuário pro login.
+- `"Full authentication is required"` — nenhum token enviado numa rota protegida.
 
-**Logout**: invalida o token via denylist server-side (usa o `jti` do JWT). Depois de logout,
-requisições com aquele token voltam a ser tratadas como anônimas (o filtro ignora tokens
-revogados, não lança erro).
+`403` continua existindo, mas agora só para o caso de token válido com role insuficiente (ex.:
+`CUSTOMER` chamando rota `ADMIN`) — o `AccessDeniedHandler` não foi customizado, então esse
+continua no formato padrão do Spring Security (não no formato de `ErrorResponseDTO`). Ou seja:
+`401` = "não autenticado ou sessão inválida" (formato JSON próprio, com `message` diferenciando os
+casos acima), `403` = "autenticado mas sem permissão" (não JSON estruturado).
+
+**Logout**: invalida o access token via denylist server-side (usa o `jti` do JWT) **e** revoga o
+refresh token enviado no corpo. Depois de logout, requisições com aquele access token voltam a
+ser tratadas como anônimas (o filtro ignora tokens revogados, não lança erro), e tentar usar o
+refresh token revogado em `/user/auth/refresh` devolve `401`.
 
 **Erros de auth**: sign-in com credenciais inválidas ou usuário inativo → `401`. Sign-up com
 email já existente → `409`. `SignUpDTO` agora valida `email` (formato), `password` (mínimo 8
@@ -287,14 +308,15 @@ Todo erro (validação, regra de negócio, exceção genérica) devolve o mesmo 
   assumindo que a API impede um usuário de acessar dados de outro.
 - CORS configurado só para `http://localhost:3001` (ver seção 2) — outra origem precisa ser
   adicionada no backend antes de funcionar.
-- Sem refresh token — o JWT expira em 1h (`jwt.expiration-ms=3600000`) e não há endpoint de
-  renovação; ao expirar, o usuário precisa fazer sign-in de novo.
 - Sem WebSocket/SSE para status de pedido em tempo real — para saber se um pedido mudou de
   status (ex.: confirmado após o consumer de `inventory` decrementar estoque), o frontend
   precisa fazer polling do GET do pedido.
 - Sem endpoint de "meu perfil" (`/user/me` ou similar) — os dados do usuário logado vêm apenas
-  do que já foi retornado no sign-in/sign-up (`AuthResponseDTO`), decodifique o próprio JWT no
-  frontend se precisar do `role` depois.
+  do que já foi retornado no sign-in/sign-up/refresh (`AuthResponseDTO`), decodifique o próprio
+  JWT no frontend se precisar do `role` depois.
+- Refresh token existe (ver seção 3), mas ainda é **um por login/sessão**, sem suporte a listar
+  ou revogar sessões específicas (ex.: "sair de todos os dispositivos") — só há revogação
+  individual via logout ou rotação.
 
 ## 8. Convenções relevantes para o frontend
 

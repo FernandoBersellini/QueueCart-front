@@ -6,6 +6,7 @@ export interface AuthResponseDTO {
   name: string;
   role: Role;
   token: string;
+  refreshToken: string;
 }
 
 export interface SignInDTO {
@@ -17,4 +18,8 @@ export interface SignUpDTO {
   email: string;
   password: string;
   name: string;
+}
+
+export interface RefreshTokenDTO {
+  refreshToken: string;
 }
